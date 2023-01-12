@@ -39,7 +39,9 @@ jobs:
               archive_format: 'zip',
             });
             fs.writeFileSync('${{github.workspace}}/PR.zip', Buffer.from(download.data));
-      - run: unzip PR.zip
+      - run: |
+          mkdir PR
+          unzip PR.zip -d PR
       - uses: actions/github-script@v6
         id: pr
         with:
