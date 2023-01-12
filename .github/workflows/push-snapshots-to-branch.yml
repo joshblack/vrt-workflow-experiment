@@ -8,6 +8,8 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+  
+permissions: {}
 
 jobs:
   commit-and-push:
@@ -15,8 +17,7 @@ jobs:
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
+    permissions: write-all
     steps:
       # Warning: we are checking out an untrusted source at this point in order
       # to push to the head pull request. Code from this checkout must not be
