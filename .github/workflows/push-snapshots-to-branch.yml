@@ -5,10 +5,6 @@ on:
     types:
       - completed
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-  
 permissions: {}
 
 jobs:
@@ -26,7 +22,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.ref }}
       - name: 'Download artifact'
         uses: actions/github-script@v6
         id: download-artifact
@@ -49,8 +45,8 @@ jobs:
               artifact_id: artifact.id,
               archive_format: 'zip',
             });
-            fs.writeFileSync('${{github.workspace}}/.playwright/snapshots/snapshots.zip', Buffer.from(download.data));
-      - run: unzip .playwright/snapshots/snapshots.zip
+            fs.writeFileSync('${{github.workspace}}/snapshots.zip', Buffer.from(download.data));
+      - run: unzip snapshots.zip -d .playwright/snapshots
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'test(vrt): update snapshots'
