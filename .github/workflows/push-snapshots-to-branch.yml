@@ -48,15 +48,11 @@ jobs:
                 artifact_id: artifact.id,
                 archive_format: 'zip',
               });
-              fs.writeFileSync('${{github.workspace}}/snapshots.zip', Buffer.from(download.data));
+              fs.writeFileSync('${{github.workspace}}/.playwright/snapshots/snapshots.zip', Buffer.from(download.data));
               return true;
             }
             return false;
-      - run: |
-          unzip snapshots.zip
-          mv snapshots .playwright/snapshots
-          ls -al snapshots
-          ls -al .playwright/snapshots
+      - run: unzip .playwright/snapshots/snapshots.zip
       # - name: Generate token
         # id: generate_token
         # uses: tibdex/github-app-token@v1
