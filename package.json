@@ -1,0 +1,9 @@
+{
+  "name": "vrt-workflow-experiment",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.29.2"
+  }
+}
