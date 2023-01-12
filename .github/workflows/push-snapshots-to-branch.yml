@@ -107,6 +107,7 @@ jobs:
               await github.rest.issues.removeLabel({
                 owner: 'joshblack',
                 repo: 'vrt-workflow-experiment',
+                name: LABEL_NAME,
                 issue_number,
               });
             }
