@@ -59,6 +59,13 @@ jobs:
     permissions: 
       contents: write
     steps:
+      # Warning: we are checking out an untrusted source at this point in order
+      # to push to the head pull request. Code from this checkout must not be
+      # used in any of the following steps.
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ needs.pull-request.outputs.ref }}
       - name: 'Download artifact'
         uses: actions/github-script@v6
         id: download-artifact
@@ -82,15 +89,9 @@ jobs:
               archive_format: 'zip',
             });
             fs.writeFileSync('${{github.workspace}}/snapshots.zip', Buffer.from(download.data));
-      # Warning: we are checking out an untrusted source at this point in order
-      # to push to the head pull request. Code from this checkout must not be
-      # used in any of the following steps.
-      - uses: actions/checkout@v3
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ needs.pull-request.outputs.ref }}
       - run: |
           unzip -o snapshots.zip -d .playwright/snapshots
+          rm snapshots.zip
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'test(vrt): update snapshots'
