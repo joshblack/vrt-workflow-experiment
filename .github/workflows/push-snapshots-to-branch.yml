@@ -25,7 +25,6 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.head_ref }}
-          token: ${{ steps.generate_token.outputs.token }}
       - name: 'Download artifact'
         uses: actions/github-script@v3.1.0
         id: download-artifact
