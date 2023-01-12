@@ -72,7 +72,7 @@ jobs:
         with:
           script: |
             const { ISSUE_NUMBER, LABEL_NAME } = process.env;
-            const { data: labels } = octokit.rest.issues.listLabelsOnIssue({
+            const { data: labels } = github.rest.issues.listLabelsOnIssue({
               owner: 'joshblack',
               repo: 'vrt-workflow-experiment',
               issue_number: ISSUE_NUMBER,
@@ -81,7 +81,7 @@ jobs:
               return label.name === LABEL_NAME;
             });
             if (label) {
-              await octokit.rest.issues.removeLabel({
+              await github.rest.issues.removeLabel({
                 owner: 'joshblack',
                 repo: 'vrt-workflow-experiment',
                 issue_number: ISSUE_NUMBER,
