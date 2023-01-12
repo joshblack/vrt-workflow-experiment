@@ -18,7 +18,7 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions: 
-      pull-requests: write
+      contents: write
     steps:
       # Warning: we are checking out an untrusted source at this point in order
       # to push to the head pull request. Code from this checkout must not be
@@ -54,9 +54,16 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'test(vrt): update snapshots'
+
+  remove-labels:
+    needs: commit-and-push
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: 
+      pull-requests: write
+    steps:
       - name: 'Get Pull Request number'
         uses: actions/github-script@v6
-        if: always()
         with:
           script: |
             const fs = require('fs');
@@ -80,7 +87,6 @@ jobs:
       - run: unzip PULL_REQUEST_NUMBER.zip
       - name: Remove label
         uses: actions/github-script@v6
-        if: always()
         with:
           script: |
             const fs = require('fs');
@@ -104,4 +110,3 @@ jobs:
             }
         env:
           LABEL_NAME: 'approve changes'
-
