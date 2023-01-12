@@ -1,0 +1,32 @@
+name: update-snapshots
+on:
+  pull_request:
+    types:
+      - labeled
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upload:
+    if: contains(github.event.pull_request.labels.*.name, 'approve changes')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install browsers
+        run: npx playwright install --with-deps
+      - name: Update snapshots
+        run: npx playwright test --update-snapshots
+      - name: Upload snapshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: snapshots
+          path: .playwright/snapshots
+
