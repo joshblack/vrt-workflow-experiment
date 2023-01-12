@@ -68,7 +68,7 @@ jobs:
         with:
           script: |
             const { ISSUE_NUMBER, LABEL_NAME } = process.env;
-            const { data: labels } = github.rest.issues.listLabelsOnIssue({
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: 'joshblack',
               repo: 'vrt-workflow-experiment',
               issue_number: ISSUE_NUMBER,
@@ -84,6 +84,6 @@ jobs:
               });
             }
         env:
-          ISSUE_NUMBER: ${{ github.context.issue.number }}
+          ISSUE_NUMBER: ${{ github.event.pull_request.number }}
           LABEL_NAME: 'approve changes'
 
