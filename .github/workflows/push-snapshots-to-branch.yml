@@ -94,6 +94,7 @@ jobs:
           ref: ${{ needs.pull-request.outputs.ref }}
       - run: |
           rm -rf .playwright/snapshots
+          mkdir -p .playwright/snapshots
           mv snapshots .playwright/snapshots
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
