@@ -1,0 +1,73 @@
+name: push-snapshots-to-branch
+on:
+  workflow_run:
+    workflows: [update-snapshots]
+    types:
+      - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commit-and-push:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      # Warning: we are checking out an untrusted source at this point in order
+      # to push to the head pull request. Code from this checkout must not be
+      # used in any of the following steps.
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.head_ref }}
+          token: ${{ steps.generate_token.outputs.token }}
+      - name: 'Download artifact'
+        uses: actions/github-script@v3.1.0
+        id: download-artifact
+        with:
+          script: |
+            const fs = require('fs');
+
+            const artifacts = await github.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{github.event.workflow_run.id }},
+            });
+            const artifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name == "pr"
+            });
+
+            if (artifact) {
+              const download = await github.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+                archive_format: 'zip',
+              });
+              fs.writeFileSync('${{github.workspace}}/snapshots.zip', Buffer.from(download.data));
+              return true;
+            }
+            return false;
+      - run: |
+          unzip snapshots.zip
+          mv snapshots .playwright/snapshots
+          ls -al snapshots
+          ls -al .playwright/snapshots
+      # - name: Generate token
+        # id: generate_token
+        # uses: tibdex/github-app-token@v1
+        # with:
+          # app_id: ${{ secrets.APP_ID }}
+          # private_key: ${{ secrets.PRIVATE_KEY }}
+      # - uses: stefanzweifel/git-auto-commit-action@v4
+        # with:
+          # commit_message: 'test(vrt): update snapshots'
+      # - uses: actions-ecosystem/action-remove-labels@v1
+        # with:
+          # labels: 'update snapshots'
+
