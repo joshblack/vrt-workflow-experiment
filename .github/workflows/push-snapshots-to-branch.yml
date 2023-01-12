@@ -18,7 +18,6 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions: 
-      issues: write
       pull-requests: write
     steps:
       # Warning: we are checking out an untrusted source at this point in order
