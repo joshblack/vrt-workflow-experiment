@@ -43,27 +43,17 @@ jobs:
               return artifact.name == 'snapshots'
             });
 
-            if (artifact) {
-              const download = await github.rest.actions.downloadArtifact({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                artifact_id: artifact.id,
-                archive_format: 'zip',
-              });
-              fs.writeFileSync('${{github.workspace}}/.playwright/snapshots/snapshots.zip', Buffer.from(download.data));
-              return true;
-            }
-            return false;
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+            fs.writeFileSync('${{github.workspace}}/.playwright/snapshots/snapshots.zip', Buffer.from(download.data));
       - run: unzip .playwright/snapshots/snapshots.zip
-      # - name: Generate token
-        # id: generate_token
-        # uses: tibdex/github-app-token@v1
-        # with:
-          # app_id: ${{ secrets.APP_ID }}
-          # private_key: ${{ secrets.PRIVATE_KEY }}
-      # - uses: stefanzweifel/git-auto-commit-action@v4
-        # with:
-          # commit_message: 'test(vrt): update snapshots'
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'test(vrt): update snapshots'
       - name: 'Get Pull Request number'
         uses: actions/github-script@v6
         if: always()
