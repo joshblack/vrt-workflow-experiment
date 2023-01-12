@@ -84,6 +84,6 @@ jobs:
               });
             }
         env:
-          ISSUE_NUMBER: ${{ github.event.pull_request.number }}
+          ISSUE_NUMBER: ${{ github.event.number }}
           LABEL_NAME: 'approve changes'
 
