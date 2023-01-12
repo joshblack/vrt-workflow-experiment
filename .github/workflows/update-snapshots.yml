@@ -32,6 +32,10 @@ jobs:
           retention-days: 1
       - name: Save Pull Request Number
         run: echo ${{ github.event.number }} > ./PULL_REQUEST_NUMBER
+      - run: |
+          echo ${{ github.event.ref }}
+          echo ${{ github.event.pull_request.head.ref }}
+          echo ${{ github.event.pull_request.base.ref }}
       - uses: actions/upload-artifact@v2
         with:
           name: pull-request-number
