@@ -1,0 +1,108 @@
+name: push-snapshots-to-branch
+on:
+  workflow_run:
+    workflows: [update-snapshots]
+    types:
+      - completed
+
+permissions: {}
+
+jobs:
+  commit-and-push:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions: 
+      contents: write
+    steps:
+      # Warning: we are checking out an untrusted source at this point in order
+      # to push to the head pull request. Code from this checkout must not be
+      # used in any of the following steps.
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: 'Download artifact'
+        uses: actions/github-script@v6
+        id: download-artifact
+        with:
+          script: |
+            const fs = require('fs');
+
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{ github.event.workflow_run.id }},
+            });
+            const artifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name == 'snapshots'
+            });
+
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+            fs.writeFileSync('${{github.workspace}}/snapshots.zip', Buffer.from(download.data));
+      - run: unzip snapshots.zip -d .playwright/snapshots
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'test(vrt): update snapshots'
+
+  remove-labels:
+    needs: commit-and-push
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: 
+      pull-requests: write
+    steps:
+      - name: 'Get Pull Request number'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{ github.event.workflow_run.id }},
+            });
+            const artifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name == 'pull-request-number'
+            });
+
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+            fs.writeFileSync('${{github.workspace}}/PULL_REQUEST_NUMBER.zip', Buffer.from(download.data));
+      - run: unzip PULL_REQUEST_NUMBER.zip
+      - name: Remove label
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const issue_number = Number(fs.readFileSync('./PULL_REQUEST_NUMBER'), 10);
+            const { LABEL_NAME } = process.env;
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner: 'joshblack',
+              repo: 'vrt-workflow-experiment',
+              issue_number,
+            });
+            const label = labels.find((label) => {
+              return label.name === LABEL_NAME;
+            });
+            if (label) {
+              await github.rest.issues.removeLabel({
+                owner: 'joshblack',
+                repo: 'vrt-workflow-experiment',
+                name: LABEL_NAME,
+                issue_number,
+              });
+            }
+        env:
+          LABEL_NAME: 'approve changes'
