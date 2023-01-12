@@ -30,3 +30,10 @@ jobs:
           name: snapshots
           path: .playwright/snapshots
           retention-days: 1
+      - name: Save Pull Request Number
+        run: echo ${{ github.event.number }} > ./PULL_REQUEST_NUMBER
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pull-request-number
+          path: ./PULL_REQUEST_NUMBER
+          retention-days: 1
