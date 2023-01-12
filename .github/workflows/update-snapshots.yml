@@ -30,10 +30,16 @@ jobs:
           name: snapshots
           path: .playwright/snapshots
           retention-days: 1
-      - name: Save Pull Request Number
-        run: echo ${{ github.event.number }} > ./PULL_REQUEST_NUMBER
+      - name: Save Pull Request info
+        run: |
+          mkdir PR
+          echo $NUMBER > ./PR/number
+          echo $HEAD_REF >> ./PR/head_ref
+        env:
+          NUMBER: ${{ github.event.number }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
       - uses: actions/upload-artifact@v2
         with:
-          name: pull-request-number
-          path: ./PULL_REQUEST_NUMBER
+          name: pull-request
+          path: ./PR
           retention-days: 1
