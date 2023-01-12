@@ -8,10 +8,50 @@ on:
 permissions: {}
 
 jobs:
-  commit-and-push:
+  pull-request:
     if: >
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      number: ${{ steps.pr.outputs.number }}
+      ref: ${{ steps.pr.outputs.head-ref }}
+    steps:
+      - name: 'Get Pull Request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{ github.event.workflow_run.id }},
+            });
+            const artifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name == 'pull-request'
+            });
+
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+            fs.writeFileSync('${{github.workspace}}/PR.zip', Buffer.from(download.data));
+      - uses: actions/github-script@v6
+        id: pr
+        with:
+          script: |
+            const fs = require('fs');
+            const number = Number(fs.readFileSync('./PR/number', 'utf8'), 10);
+            const ref = fs.readFileSync('./PR/head_ref', 'utf8');
+            
+            core.setOutput('number', number);
+            core.setOutput('head-ref', ref);
+
+  commit-and-push:
+    needs: pull-request
     runs-on: ubuntu-latest
     permissions: 
       contents: write
@@ -22,7 +62,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ needs.pull-request.outputs.ref }}
       - name: 'Download artifact'
         uses: actions/github-script@v6
         id: download-artifact
@@ -52,46 +92,22 @@ jobs:
           commit_message: 'test(vrt): update snapshots'
 
   remove-labels:
-    needs: commit-and-push
+    needs: [commit-and-push, pull-request]
     if: always()
     runs-on: ubuntu-latest
     permissions: 
       pull-requests: write
     steps:
-      - name: 'Get Pull Request number'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               run_id: ${{ github.event.workflow_run.id }},
-            });
-            const artifact = artifacts.data.artifacts.find((artifact) => {
-              return artifact.name == 'pull-request-number'
-            });
-
-            const download = await github.rest.actions.downloadArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: artifact.id,
-              archive_format: 'zip',
-            });
-            fs.writeFileSync('${{github.workspace}}/PULL_REQUEST_NUMBER.zip', Buffer.from(download.data));
-      - run: unzip PULL_REQUEST_NUMBER.zip
       - name: Remove label
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
-            const issue_number = Number(fs.readFileSync('./PULL_REQUEST_NUMBER'), 10);
-            const { LABEL_NAME } = process.env;
+            const { ISSUE_NUMBER, LABEL_NAME } = process.env;
             const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: 'joshblack',
               repo: 'vrt-workflow-experiment',
-              issue_number,
+              issue_number: ISSUE_NUMBER,
             });
             const label = labels.find((label) => {
               return label.name === LABEL_NAME;
@@ -101,8 +117,9 @@ jobs:
                 owner: 'joshblack',
                 repo: 'vrt-workflow-experiment',
                 name: LABEL_NAME,
-                issue_number,
+                issue_number: ISSUE_NUMBER,
               });
             }
         env:
+          ISSUE_NUMBER: ${{ needs.pull-request.outputs.number }}
           LABEL_NAME: 'approve changes'
