@@ -89,7 +89,9 @@ jobs:
               archive_format: 'zip',
             });
             fs.writeFileSync('${{github.workspace}}/snapshots.zip', Buffer.from(download.data));
-      - run: unzip -o snapshots.zip -d .playwright/snapshots
+      - run: |
+          unzip -o snapshots.zip -d .playwright/snapshots
+          rm snapshots.zip
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'test(vrt): update snapshots'
